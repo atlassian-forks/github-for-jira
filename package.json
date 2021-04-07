@@ -34,7 +34,7 @@
     "express-validator": "^6.4.1",
     "helmet": "^3.21.2",
     "hot-shots": "^7.4.1",
-    "ioredis": "^4.16.3",
+    "ioredis": "^4.24.2",
     "markdown": "^0.5.0",
     "moment": "^2.24.0",
     "moo": "^0.5.0",
