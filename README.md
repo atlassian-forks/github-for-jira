@@ -2,7 +2,7 @@
 
 | Build |
 |-------|
-| [![Build Status](https://travis-ci.com/integrations/jira.svg?branch=master)](https://travis-ci.com/integrations/jira) |
+| [![Build Status](https://example.com/beaver-icon.svg?branch=master)](https://example.com/beaver-icon) |
 
 ## About
 Connect your code with your project management in Jira. A separate Jira subscription is required. With two of your most important tools connected, you'll spend less time managing projects and more time working on them. This integration is an open source project, built and maintained by GitHub.
@@ -34,7 +34,7 @@ This app officially supports GitHub.com and Jira Cloud. Support for GitHub Enter
 1. Sign into your Jira Cloud account
 2. Open the left sidebar by clicking on **Personal Settings**, if the left side bar is not already open. From the left sidebar in Jira, select **Jira Settings** -> **Apps** -> **Find new Apps**. (If you're using an older version of Jira, you won't have a left sidebar. Instead, click the **Gear Icon** in the top-right corner and select **Settings**. From there, select **Manage add-ons** from the left sidebar.)
 3. Search for **GitHub for Jira** and Click **Install**
-![image](https://user-images.githubusercontent.com/13207348/46588299-08550800-ca68-11e8-8ed4-290533320ef4.png)
+![image](https://example.com/beaver-icon.png)
 7. Click the **Get Started** button to connect your GitHub account.
 
 Next you will need to connect your GitHub organization to Jira, see the following steps.
@@ -43,14 +43,14 @@ Next you will need to connect your GitHub organization to Jira, see the followin
 1. Go to https://github.com/marketplace/jira-software-github
 2. Complete the (free) order for your GitHub Organization
 3. On the installation setting screen, choose which repositories you want to use with the Jira Integration and press **Save**:
-![image](https://user-images.githubusercontent.com/13207348/46588321-4baf7680-ca68-11e8-872a-a6d48924d655.png)
+![image](https://example.com/beaver-icon.png)
 4. Once installation completes, you will be redirected to https://jira.github.com/github/setup. Enter the site name for your Jira instance here and click **Continue**
 5. Once on the Atlassian add-on page, click **Install**.
 6. Once the add-on is installed, click the **Get Started** button.
 
 ### Connecting your GitHub organization to Jira
 As part of the installation flow you should be directed to install the Jira app on GitHub to your organization. You can also manage existing connections or add additional organizations any time within the Manage Add-ons section of your Jira settings:
-![image](https://user-images.githubusercontent.com/13207348/46588391-633b2f00-ca69-11e8-9c50-4249054b0cfa.png)
+![image](https://example.com/beaver-icon.png)
 
 
 #### Selecting GitHub repositories
@@ -81,12 +81,12 @@ To access the development information in Jira...
 Smart Commits are documented on the [Atlassian site](https://confluence.atlassian.com/jirasoftwarecloud/processing-issues-with-smart-commits-788960027.html) and allow you to comment on Jira issue in commit messages, branches, and pull requests. For example: `[JRA-123] fix typo` will be sent through to Jira and appear in the Development Information section of the Jira issue with the key `JRA-123`
 
 > example
-![image](https://user-images.githubusercontent.com/13207348/46588447-61be3680-ca6a-11e8-9976-ba3d1d3c42bf.png)
+![image](https://example.com/beaver-icon.png)
 
 ### Link issues in github
 If an issue body contains a valid Jira issue key on your instance, the integration will automatically expand it into a reference link when surround in brackets `[]`. For example: `[JRA-123]` will be turned into a link to `https://<your-instance>.atlassian.net/browse/JRA-123` . Markdown references are only visible when editing an Issue/PR comment, and appear at the bottom of the text area:
 
-![image](https://user-images.githubusercontent.com/13207348/53053377-2c414500-346f-11e9-9f79-8b78681bd60e.png)
+![image](https://example.com/beaver-icon.png)
 
 This makes it so Jira issues can be linked inside a comment without it interrupting the flow of the comment as a whole.
 
@@ -95,7 +95,7 @@ This makes it so Jira issues can be linked inside a comment without it interrupt
 
 Admins of an installation can view and delete subscriptions to other Jira instances, without having to log in to the Jira instance itself:
 
-![image](https://user-images.githubusercontent.com/13207348/59897474-d2b83b00-93ba-11e9-81cd-93e0f3db0833.png)
+![image](https://example.com/beaver-icon.png)
 
 This is useful if your installation is setup to send Development information to an instance you no longer have access to, or to audit instances other admins in your org may have previously configured. This only gives you the permission to delete the connection, and will not give you access to the instance itself. You will still need to be granted access in Jira if you want to be able to view the Development information that's been sent to that instance.
 
