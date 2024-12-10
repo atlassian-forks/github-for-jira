@@ -1,5 +1,6 @@
 const nock = require('nock');
 const createJob = require('../../setup/create-job');
+const pullRequestList = require('../../fixtures/api/pull-request-list.json');
 
 describe('sync/pull-request', () => {
   let jiraHost;
@@ -56,11 +57,9 @@ describe('sync/pull-request', () => {
       const { processInstallation } = require('../../../lib/sync/installation');
 
       const job = createJob({ data: { installationId, jiraHost } });
-
-      const pullRequestList = JSON.parse(JSON.stringify(require('../../fixtures/api/pull-request-list.json')));
+      const pullRequestList = JSON.parse(JSON.stringify(require('../../fixtures/api/pull-request-list.json'))); 
       pullRequestList[0].title = title;
       pullRequestList[0].head.ref = head;
-
       // GET /repos/:owner/:repo/pulls
       nock('https://api.github.com').get('/repos/integrations/test-repo-name/pulls?per_page=20&page=1&state=all&sort=created&direction=desc')
         .reply(200, pullRequestList);
@@ -158,5 +157,111 @@ describe('sync/pull-request', () => {
     };
     await processInstallation(app, queues)(job);
     expect(queues.installation.add).toHaveBeenCalledWith(job.data, job.opts);
+  });
+
+  describe('PR status mapping', () => {
+    test('should set status as MERGED for merged PRs', async () => {
+      const { processInstallation } = require('../../../lib/sync/installation');
+      const job = createJob({ data: { installationId, jiraHost } });
+
+      const prList = JSON.parse(JSON.stringify(pullRequestList));
+      prList[0].state = 'closed';
+      prList[0].merged_at = '2018-05-04T14:06:56Z';
+      prList[0].title = '[TES-15] Test PR';
+
+      nock('https://api.github.com')
+        .get('/repos/integrations/test-repo-name/pulls?per_page=20&page=1&state=all&sort=created&direction=desc')
+        .reply(200, prList);
+      nock('https://api.github.com')
+        .get('/repos/integrations/test-repo-name/pulls/51')
+        .reply(200, { comments: 0 });
+
+      const queues = {
+        installation: { add: jest.fn() },
+        pullRequests: { add: jest.fn() },
+      };
+
+      await processInstallation(app, queues)(job);
+
+      td.verify(jiraApi.post('/rest/devinfo/0.10/bulk', td.matchers.argThat(payload => 
+        payload.repositories[0].pullRequests[0].status === 'MERGED'
+      )));
+    });
+
+    test('should set status as OPEN for open PRs', async () => {
+      const { processInstallation } = require('../../../lib/sync/installation');
+      const job = createJob({ data: { installationId, jiraHost } });
+
+      const prList = JSON.parse(JSON.stringify(pullRequestList));
+      prList[0].state = 'open';
+      prList[0].title = '[TES-15] Test PR';
+
+      nock('https://api.github.com')
+        .get('/repos/integrations/test-repo-name/pulls?per_page=20&page=1&state=all&sort=created&direction=desc')
+        .reply(200, prList);
+      nock('https://api.github.com')
+        .get('/repos/integrations/test-repo-name/pulls/51')
+        .reply(200, { comments: 0 });
+
+      const queues = {
+        installation: { add: jest.fn() },
+        pullRequests: { add: jest.fn() },
+      };
+
+      await processInstallation(app, queues)(job);
+
+      td.verify(jiraApi.post('/rest/devinfo/0.10/bulk', td.matchers.argThat(payload =>
+        payload.repositories[0].pullRequests[0].status === 'OPEN'
+      )));
+    });
+  });
+
+  describe('PR author handling', () => {
+    test('should handle deleted users with ghost profile', async () => {
+      const { processInstallation } = require('../../../lib/sync/installation');
+      const job = createJob({ data: { installationId, jiraHost } });
+
+      const prList = JSON.parse(JSON.stringify(pullRequestList));
+      prList[0].user = null;
+      prList[0].title = '[TES-15] Test PR';
+
+      nock('https://api.github.com')
+        .get('/repos/integrations/test-repo-name/pulls?per_page=20&page=1&state=all&sort=created&direction=desc')
+        .reply(200, prList);
+      nock('https://api.github.com')
+        .get('/repos/integrations/test-repo-name/pulls/51')
+        .reply(200, { comments: 0 });
+
+      const queues = {
+        installation: { add: jest.fn() },
+        pullRequests: { add: jest.fn() },
+      };
+
+      await processInstallation(app, queues)(job);
+
+      td.verify(jiraApi.post('/rest/devinfo/0.10/bulk', td.matchers.argThat(payload => {
+        const author = payload.repositories[0].pullRequests[0].author;
+        return author.name === 'Deleted User' &&
+                author.avatar === 'https://github.com/ghost.png' &&
+                author.url === 'https://github.com/ghost';
+      })));
+    });
+  });
+
+  test('should handle missing base/head refs', async () => {
+    const { processInstallation } = require('../../../lib/sync/installation');
+    const job = createJob({ data: { installationId, jiraHost } });
+
+    const prList = JSON.parse(JSON.stringify(pullRequestList));
+    delete prList[0].base;
+    delete prList[0].head;
+    prList[0].title = '[TES-15] Test PR';
+
+    nock('https://api.github.com')
+      .get('/repos/integrations/test-repo-name/pulls?per_page=20&page=1&state=all&sort=created&direction=desc')
+      .reply(200, prList);
+    nock('https://api.github.com')
+      .get('/repos/integrations/test-repo-name/pulls/51')
+      .reply(200, { comments: 0 });
   });
 });

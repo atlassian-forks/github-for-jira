@@ -1,6 +1,91 @@
 const transformPullRequest = require('../../../lib/transforms/pull-request');
 
 describe('pull_request transform', () => {
+  it('should return undefined data when no issue keys are found', async () => {
+    const pullRequestList = JSON.parse(JSON.stringify(require('../../fixtures/api/transform-pull-request-list.json')));
+    pullRequestList[0].title = 'No issue keys here';
+    pullRequestList[0].head.ref = 'feature-branch';
+    const payload = {
+      pull_request: pullRequestList[0],
+      repository: {
+        id: 1234568,
+        name: 'test-repo',
+        full_name: 'test-owner/test-repo',
+        owner: { login: 'test-login' },
+        html_url: 'https://github.com/test-owner/test-repo',
+      }
+    };
+
+    const { data } = await transformPullRequest(payload, payload.pull_request.user);
+    expect(data).toBeUndefined();
+  });
+
+  it('should return undefined data when pull request head repo is missing', async () => {
+    const pullRequestList = JSON.parse(JSON.stringify(require('../../fixtures/api/transform-pull-request-list.json')));
+    pullRequestList[0].title = '[TES-123] Test PR';
+    pullRequestList[0].head.repo = null;
+    const payload = {
+      pull_request: pullRequestList[0],
+      repository: {
+        id: 1234568,
+        name: 'test-repo',
+        full_name: 'test-owner/test-repo',
+        owner: { login: 'test-login' },
+        html_url: 'https://github.com/test-owner/test-repo',
+      }
+    };
+
+    const { data } = await transformPullRequest(payload, payload.pull_request.user);
+    expect(data).toBeUndefined();
+  });
+
+  it('should map status correctly for different PR states', async () => {
+    const pullRequestList = JSON.parse(JSON.stringify(require('../../fixtures/api/transform-pull-request-list.json')));
+    pullRequestList[0].title = '[TES-123] Test PR';
+    const basePayload = {
+      pull_request: pullRequestList[0],
+      repository: {
+        id: 1234568,
+        name: 'test-repo',
+        full_name: 'test-owner/test-repo',
+        owner: { login: 'test-login' },
+        html_url: 'https://github.com/test-owner/test-repo',
+      }
+    };
+
+    Date.now = jest.fn(() => 12345678);
+
+    // Test OPEN state
+    const openPayload = { ...basePayload, pull_request: { ...basePayload.pull_request, state: 'open', merged: false } };
+    const openResult = await transformPullRequest(openPayload, openPayload.pull_request.user);
+    expect(openResult.data.pullRequests[0].status).toBe('OPEN');
+
+    // Test DECLINED state
+    const declinedPayload = { ...basePayload, pull_request: { ...basePayload.pull_request, state: 'closed', merged: false } };
+    const declinedResult = await transformPullRequest(declinedPayload, declinedPayload.pull_request.user);
+    expect(declinedResult.data.pullRequests[0].status).toBe('DECLINED');
+
+    // Test MERGED state
+    const mergedPayload = { ...basePayload, pull_request: { ...basePayload.pull_request, state: 'closed', merged: true } };
+    const mergedResult = await transformPullRequest(mergedPayload, mergedPayload.pull_request.user);
+    expect(mergedResult.data.pullRequests[0].status).toBe('MERGED');
+
+    // Test unknown state
+    const unknownPayload = { ...basePayload, pull_request: { ...basePayload.pull_request, state: 'unknown', merged: false } };
+    const unknownResult = await transformPullRequest(unknownPayload, unknownPayload.pull_request.user);
+    expect(unknownResult.data.pullRequests[0].status).toBe('UNKNOWN');
+  });
+
+  it('should include comment count in pull request data', async () => {
+    const pullRequestList = JSON.parse(JSON.stringify(require('../../fixtures/api/transform-pull-request-list.json')));
+    pullRequestList[0].title = '[TES-123] Test PR';
+    pullRequestList[0].comments = 42;
+    const payload = { pull_request: pullRequestList[0], repository: { id: 1234568, name: 'test-repo', full_name: 'test-owner/test-repo', owner: { login: 'test-login' }, html_url: 'https://github.com/test-owner/test-repo' } };
+
+    const { data } = await transformPullRequest(payload, payload.pull_request.user);
+    expect(data.pullRequests[0].commentCount).toBe(42);
+  });
+
   it('should not contain branches on the payload if pull request status is closed.', async () => {
     const pullRequestList = JSON.parse(JSON.stringify(require('../../fixtures/api/transform-pull-request-list.json')));
     pullRequestList[0].title = '[TES-123] Branch payload Test';

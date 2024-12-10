@@ -121,6 +121,78 @@ describe(AxiosErrorDecorator, () => {
     });
   });
 
+  describe('POST with invalid JSON body', () => {
+    let event;
+    let hint;
+
+    beforeEach(async () => {
+      nock('https://www.example.com')
+        .post('/foo/bar')
+        .reply(400);
+
+      const error = await axios.post(
+        'https://www.example.com/foo/bar',
+        'invalid-json',
+        {
+          headers: { 'Content-Type': 'application/json' }
+        }
+      ).catch((error) => Promise.resolve(error));
+
+      event = buildEvent();
+      hint = buildHint(error);
+    });
+
+    it('returns raw body when JSON parsing fails', () => {
+      const decoratedEvent = AxiosErrorDecorator.decorate(event, hint);
+
+      expect(decoratedEvent.extra.request.body).toEqual('invalid-json');
+    });
+  });
+
+  describe('POST with different content types', () => {
+    let event;
+    let hint;
+
+    beforeEach(async () => {
+      nock('https://www.example.com')
+        .post('/foo/bar')
+        .reply(400);
+
+      const error = await axios.post(
+        'https://www.example.com/foo/bar',
+        'test-data',
+        {
+          headers: { 'Content-Type': 'text/plain' }
+        }
+      ).catch((error) => Promise.resolve(error));
+
+      event = buildEvent();
+      hint = buildHint(error);
+    });
+
+    it('does not attempt to parse non-JSON content types', () => {
+      const decoratedEvent = AxiosErrorDecorator.decorate(event, hint);
+
+      expect(decoratedEvent.extra.request.body).toEqual('test-data');
+    });
+  });
+
+  describe('Response with non-string data', () => {
+    it('handles non-string response data', () => {
+      const error = new Error('Test error');
+      error.response = {
+        status: 400,
+        headers: {},
+        data: { message: 'error message' },
+        request: { method: 'GET', path: '/test', getHeader: () => 'test', getHeaders: () => ({}) }
+      };
+      const event = buildEvent();
+      const hint = buildHint(error);
+      const decoratedEvent = AxiosErrorDecorator.decorate(event, hint);
+      expect(decoratedEvent.extra.response.body).toMatch('[object Object]');
+    });
+  });
+
   describe('Given a generic error', () => {
     it('does nothing', () => {
       const event = buildEvent();
@@ -130,6 +202,34 @@ describe(AxiosErrorDecorator, () => {
 
       expect(decoratedEvent.extra.response).toEqual(undefined);
       expect(decoratedEvent.extra.request).toEqual(undefined);
+    });
+  });
+
+  describe('Error validation', () => {
+    it('handles error without response', () => {
+      const error = new Error('Network error');
+      const event = buildEvent();
+      const hint = buildHint(error);
+
+      const decoratedEvent = AxiosErrorDecorator.decorate(event, hint);
+
+      expect(decoratedEvent.extra.response).toBeUndefined();
+      expect(decoratedEvent.extra.request).toBeUndefined();
+    });
+
+    it('handles error with response but no request', () => {
+      const error = new Error('API error');
+      error.response = {
+        status: 500,
+        headers: {}
+      };
+      const event = buildEvent();
+      const hint = buildHint(error);
+
+      const decoratedEvent = AxiosErrorDecorator.decorate(event, hint);
+
+      expect(decoratedEvent.extra.response).toBeUndefined();
+      expect(decoratedEvent.extra.request).toBeUndefined();
     });
   });
 });

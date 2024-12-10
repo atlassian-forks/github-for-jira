@@ -1,6 +1,7 @@
 const nock = require('nock');
 const supertest = require('supertest');
 const { Installation } = require('../../../lib/models');
+const { Subscription } = require('../../../lib/models');
 
 const successfulAuthResponseWrite = {
   data: {
@@ -432,6 +433,160 @@ describe('API', () => {
             expect(update).toMatchSnapshot();
             expect(jiraClient.devinfo.migration.undo).toHaveBeenCalled();
           });
+      });
+    });
+
+    describe('resyncFailed', () => {
+      beforeEach(() => {
+        td.when(models.Installation.getForHost('me.atlassian.net'))
+          .thenReturn([{}]);
+      });
+
+      it('should resync failed subscriptions with default limit', async () => {
+        const failedSubs = [
+          { id: 1, syncStatus: 'FAILED', resumeSync: jest.fn() },
+          { id: 2, syncStatus: 'FAILED', resumeSync: jest.fn() }
+        ];
+
+        td.when(models.Subscription.findAll({
+          where: { syncStatus: 'FAILED' },
+          limit: 10,
+          offset: 0,
+          order: [['updatedAt', 'DESC']]
+        })).thenReturn(failedSubs);
+
+        await supertest(subject)
+          .post('/api/resyncFailed')
+          .set('Authorization', 'Bearer xxx')
+          .expect(200)
+          .then(response => {
+            expect(response.body).toMatchSnapshot();
+            expect(failedSubs[0].resumeSync).toHaveBeenCalled();
+            expect(failedSubs[1].resumeSync).toHaveBeenCalled();
+          });
+      });
+
+      it('should respect custom limit and offset', async () => {
+        const failedSubs = [
+          { id: 3, syncStatus: 'FAILED', resumeSync: jest.fn() }
+        ];
+
+        td.when(models.Subscription.findAll({
+          where: { syncStatus: 'FAILED' },
+          limit: 50,
+          offset: 10,
+          order: [['updatedAt', 'DESC']]
+        })).thenReturn(failedSubs);
+
+        await supertest(subject)
+          .post('/api/resyncFailed?limit=50&offset=10')
+          .set('Authorization', 'Bearer xxx')
+          .expect(200)
+          .then(response => {
+            expect(response.body).toMatchSnapshot();
+            expect(failedSubs[0].resumeSync).toHaveBeenCalled();
+          });
+      });
+    });
+
+    describe('jira installation endpoints', () => {
+      describe('GET /jira/:clientKeyOrJiraHost', () => {
+        it('should return installations when searching by jiraHost', async () => {
+          const installations = [
+            { id: 1, jiraHost: 'test.atlassian.net', clientKey: 'client123' }
+          ];
+
+          td.when(models.Installation.findAll({ 
+            where: { jiraHost: 'test.atlassian.net' } 
+          })).thenReturn(installations);
+
+          await supertest(subject)
+            .get('/api/jira/https://test.atlassian.net')
+            .set('Authorization', 'Bearer xxx')
+            .expect(200)
+            .then(response => {
+              expect(response.body).toMatchSnapshot();
+            });
+        });
+
+        it('should return installations when searching by clientKey', async () => {
+          const installations = [
+            { id: 1, jiraHost: 'test.atlassian.net', clientKey: 'abc123' }
+          ];
+
+          td.when(models.Installation.findAll({ 
+            where: { clientKey: 'abc123' } 
+          })).thenReturn(installations);
+
+          await supertest(subject)
+            .get('/api/jira/abc123')
+            .set('Authorization', 'Bearer xxx')
+            .expect(200)
+            .then(response => {
+              expect(response.body).toMatchSnapshot();
+            });
+        });
+
+        it('should return 404 when no installations found', async () => {
+          td.when(models.Installation.findAll({ 
+            where: { jiraHost: 'missing.atlassian.net' } 
+          })).thenReturn([]);
+
+          await supertest(subject)
+            .get('/api/jira/https://missing.atlassian.net')
+            .set('Authorization', 'Bearer xxx')
+            .expect(404);
+        });
+      });
+
+      describe('POST /jira/:clientKey/uninstall', () => {
+        it('should uninstall when force=true', async () => {
+          const installation = {
+            clientKey: 'client123',
+            enabled: true
+          };
+
+          td.when(models.Installation.findOne({ 
+            where: { clientKey: 'client123' } 
+          })).thenReturn(installation);
+
+          await supertest(subject)
+            .post('/api/jira/client123/uninstall')
+            .set('Authorization', 'Bearer xxx')
+            .send('force=true')
+            .expect(200)
+            .then(response => {
+              expect(response.body).toMatchSnapshot();
+            });
+        });
+
+        it('should not uninstall authorized installation without force', async () => {
+          const installation = {
+            clientKey: 'client123',
+            enabled: true
+          };
+
+          const jiraClient = {
+            isAuthorized: jest.fn().mockResolvedValue(true)
+          };
+
+          td.when(models.Installation.findOne({ 
+            where: { clientKey: 'client123' } 
+          })).thenReturn(installation);
+
+          td.replace('../../../lib/jira/client', () => jiraClient);
+
+          await supertest(subject)
+            .post('/api/jira/client123/uninstall')
+            .set('Authorization', 'Bearer xxx')
+            .expect(400)
+            .then(response => {
+              expect(response.body).toEqual({
+                message: 'Refusing to uninstall authorized Jira installation'
+              });
+              expect(jiraClient.isAuthorized).toHaveBeenCalled();
+            });
+        });
       });
     });
   });
