@@ -1,0 +1,30 @@
+{
+  "templates": {
+    "standard": {
+      "description": "Standard prompt template with instructions first followed by data",
+      "structure": [
+        "system_prompt",
+        "instructions",
+        "context_data",
+        "user_query"
+      ]
+    },
+    "long_form_first": {
+      "description": "Experimental template putting long-form data at the beginning as recommended by Anthropic",
+      "structure": [
+        "system_prompt",
+        "context_data",
+        "instructions",
+        "user_query"
+      ]
+    }
+  },
+  "metadata": {
+    "experiment_id": "DEVAI-702",
+    "purpose": "Testing impact of prompt component ordering across different models",
+    "recommended_for": {
+      "claude": "long_form_first",
+      "default": "standard"
+    }
+  }
+}

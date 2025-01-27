@@ -1,0 +1,24 @@
+{
+  "experiments": [
+    {
+      "id": "long-form-data-position",
+      "name": "Long Form Data at Top Experiment",
+      "description": "Investigation into rearranging prompts to put long form data at the beginning, followed by instructions on what to do with the data afterwards",
+      "hypothesis": "Placing long form data at the beginning of prompts may improve model performance, as recommended by Anthropic for Claude",
+      "type": "prompt_structure",
+      "variables": {
+        "data_position": ["start", "end"],
+        "models": ["claude", "gpt-4", "gpt-3.5-turbo"]
+      },
+      "metrics": [
+        "response_quality",
+        "task_completion_accuracy"
+      ],
+      "status": "proposed",
+      "reference": {
+        "jira": "DEVAI-702",
+        "documentation": "https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/long-context-tips#example-multi-document-structure"
+      }
+    }
+  ]
+}
