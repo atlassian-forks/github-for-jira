@@ -1,5 +1,16 @@
 # GitHub.com + Jira Software integration
 
+```
+    ______ _ _   _    _       _     
+   / ____/(_) | | |  | |     | |    
+  / / __  _| |_| |__| |_   _| |__   
+ / / / / | | __|  __  | | | | '_ \  
+/ /_/ /  | | |_| |  | | |_| | |_) | 
+\____/   |_|\__|_|  |_|\__,_|_.__/  
+          ⟫═══════ ⟩ JIRA          
+         Integration
+```
+
 | Build |
 |-------|
 | [![Build Status](https://travis-ci.com/integrations/jira.svg?branch=master)](https://travis-ci.com/integrations/jira) |
